@@ -17,7 +17,7 @@
 #include <pthread.h>
 typedef unsigned char cell_t;
 
-//Acho que cada thread deve saber em qual iteração começa e qual termina.
+//Cada thread deve saber em qual iteração começa e qual termina.
 typedef struct {
   int start, end;
   pthread_t thread;
@@ -34,7 +34,6 @@ int size;
 
 //Calcula quais iterações do laço cada thread executa
 void iteration_calc (int totalIterations) {
-  //Se o numero de threads for menor do que o total de iterações
     //Calcula quantas iterações cada thread deve executar
     int iterations = totalIterations / nThreads;
     // Calcula quantas iterações vão ficar de fora, considerando que
