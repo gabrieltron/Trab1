@@ -31,11 +31,16 @@ Thread *threads;
 int nThreads;
 //Board
 cell_t ** board;
+// Board
+cell_t ** prev;
+// Newboard
+cell_t ** next;
 //size
 int size;
 
 //Calcula quais iterações do laço cada thread executa
-void iteration_calc (int totalIterations) {
+void iteration_calc (int totalIterations)
+{
     //Calcula quantas iterações cada thread deve executar
     int iterations = totalIterations / nThreads;
     // Calcula quantas iterações vão ficar de fora, considerando que
@@ -62,7 +67,8 @@ void iteration_calc (int totalIterations) {
     }
 }
 
-void *for_allocate_board (void *idThread) {
+void *for_allocate_board (void *idThread)
+{
   int id = (int)idThread;
   int i;
   for (i=threads[id].start; i<threads[id].end; i++) {
@@ -71,7 +77,8 @@ void *for_allocate_board (void *idThread) {
   pthread_exit(NULL);
 }
 
-cell_t ** allocate_board () {
+cell_t ** allocate_board ()
+{
   board = (cell_t **) malloc(sizeof(cell_t*)*size);
   int	i;
   //Chama a função que distribui os i's de cada thread
@@ -85,16 +92,19 @@ cell_t ** allocate_board () {
   return board;
 }
 
-void free_board (cell_t ** board) {
-  int     i;
+void free_board (cell_t ** board)
+{
+  int i;
   for (i=0; i<size; i++)
-  free(board[i]);
+    free(board[i]);
+
   free(board);
 }
 
 
 /* return the number of on cells adjacent to the i,j cell */
-int adjacent_to (cell_t ** board, int i, int j) {
+int adjacent_to (cell_t ** board, int i, int j)
+{
   int	k, l, count=0;
 
   int sk = (i>0) ? i-1 : i;
@@ -110,21 +120,39 @@ int adjacent_to (cell_t ** board, int i, int j) {
   return count;
 }
 
-void play (cell_t ** board, cell_t ** newboard) {
+void play_adjacent_to(void idThread)
+{
+  int id = (int)idThread;
+  int i;
+  for (j = threads[id].start; j < threads[id].end; j++) {
+    a = adjacent_to (prev, i, j); // como passar os parametros i e j?
+    if (a == 2) next[i][j] = prev[i][j];
+    if (a == 3) next[i][j] = 1;
+    if (a < 2) next[i][j] = 0;
+    if (a > 3) next[i][j] = 0;
+  }
+}
+
+void play ()
+{
   int	i, j, a;
+  iteration_calc(size);
   /* for each cell, apply the rules of Life */
-  for (i=0; i<size; i++)
-  for (j=0; j<size; j++) {
-    a = adjacent_to (board, i, j);
-    if (a == 2) newboard[i][j] = board[i][j];
-    if (a == 3) newboard[i][j] = 1;
-    if (a < 2) newboard[i][j] = 0;
-    if (a > 3) newboard[i][j] = 0;
+  for (i=0; i<size; i++) { 
+      for (j = 0; j < nThreads; i++) {
+        pthread_create(&threads[i].thread, NULL, play_adjacent_to, (void *)i);
+      }
+      for (i = 0; i < nThreads; i++) {
+        pthread_join(threads[i].thread,NULL);
+      }
+
+      pthread_exit(NULL);
   }
 }
 
 /* print the life board */
-void print (cell_t ** board) {
+void print (cell_t ** board)
+{
   int	i, j;
   /* for each row */
   for (j=0; j<size; j++) {
@@ -137,7 +165,8 @@ void print (cell_t ** board) {
 }
 
 /* read a file into the life board */
-void read_file (FILE * f, cell_t ** board) {
+void read_file (FILE * f, cell_t ** board)
+{
   int	i, j;
   char	*s = (char *) malloc(size+10);
 
@@ -155,9 +184,11 @@ void read_file (FILE * f, cell_t ** board) {
   }
 }
 
-int main (int argc, char **argv) {
+int main (int argc, char **argv)
+{
   nThreads = atoi(argv[1]);
   int steps;
+  
   FILE    *f;
   f = stdin;
   fscanf(f,"%d %d", &size, &steps);
@@ -167,25 +198,31 @@ int main (int argc, char **argv) {
     threads = (Thread *) malloc(sizeof(Thread)*size);
     nThreads = size;
   } else {
-    threads = (Thread *) malloc(sizeof(Thread)*nThreads);
+    threads = (Thread *) malloc(sizeof(Threa
+  for (i=0; i<steps; i++) {
+    play();d)*nThreads);
   }
 
-  cell_t ** prev = allocate_board ();
+  prev = allocate_board ();
   read_file (f, prev);
   fclose(f);
-  cell_t ** next = allocate_board ();
+  
+  next = allocate_board ();
   cell_t ** tmp;
+  
   int i;
+  
   #ifdef DEBUG
-  printf("Initial:\n");
-  print(prevx);
+    printf("Initial:\n");
+    print(prevx);
   #endif
 
   for (i=0; i<steps; i++) {
-    play (prev,next);
+    play();
+
     #ifdef DEBUG
-    printf("%d ----------\n", i + 1);
-    print (next);
+      printf("%d ----------\n", i + 1);
+      print (next);
     #endif
     tmp = next;
     next = prev;
