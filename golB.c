@@ -36,7 +36,7 @@ cell_t ** prev;
 // Newboard
 cell_t ** next;
 //size
-int size;
+int size, playi;
 
 //Calcula quais iterações do laço cada thread executa
 void iteration_calc (int totalIterations)
@@ -103,7 +103,7 @@ void free_board (cell_t ** board)
 
 
 /* return the number of on cells adjacent to the i,j cell */
-int adjacent_to (cell_t ** board, int i, int j)
+int adjacent_to (int i, int j)
 {
   int	k, l, count=0;
 
@@ -114,39 +114,37 @@ int adjacent_to (cell_t ** board, int i, int j)
 
   for (k=sk; k<=ek; k++)
   for (l=sl; l<=el; l++)
-  count+=board[k][l];
-  count-=board[i][j];
+  count+=prev[k][l];
+  count-=prev[i][j];
 
   return count;
 }
 
-void play_adjacent_to(void idThread)
+void *play_adjacent_to(void *idThread)
 {
   int id = (int)idThread;
-  int i;
+  int j, a;
   for (j = threads[id].start; j < threads[id].end; j++) {
-    a = adjacent_to (prev, i, j); // como passar os parametros i e j?
-    if (a == 2) next[i][j] = prev[i][j];
-    if (a == 3) next[i][j] = 1;
-    if (a < 2) next[i][j] = 0;
-    if (a > 3) next[i][j] = 0;
+    a = adjacent_to (playi, j); // como passar os parametros i e j?
+    if (a == 2) next[playi][j] = prev[playi][j];
+    if (a == 3) next[playi][j] = 1;
+    if (a < 2) next[playi][j] = 0;
+    if (a > 3) next[playi][j] = 0;
   }
 }
 
 void play ()
 {
-  int	i, j, a;
+  int j;
   iteration_calc(size);
   /* for each cell, apply the rules of Life */
-  for (i=0; i<size; i++) { 
-      for (j = 0; j < nThreads; i++) {
-        pthread_create(&threads[i].thread, NULL, play_adjacent_to, (void *)i);
+  for (playi =0; playi < size; playi++) { 
+      for (j = 0; j < nThreads; j++) {
+        pthread_create(&threads[j].thread, NULL, play_adjacent_to, (void *)j);
       }
-      for (i = 0; i < nThreads; i++) {
-        pthread_join(threads[i].thread,NULL);
+      for (j = 0; j < nThreads; j++) {
+        pthread_join(threads[j].thread,NULL);
       }
-
-      pthread_exit(NULL);
   }
 }
 
@@ -198,9 +196,7 @@ int main (int argc, char **argv)
     threads = (Thread *) malloc(sizeof(Thread)*size);
     nThreads = size;
   } else {
-    threads = (Thread *) malloc(sizeof(Threa
-  for (i=0; i<steps; i++) {
-    play();d)*nThreads);
+    threads = (Thread *) malloc(sizeof(Thread)*nThreads);
   }
 
   prev = allocate_board ();
