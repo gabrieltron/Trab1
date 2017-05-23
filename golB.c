@@ -73,9 +73,9 @@ void iteration_calc ()
 void *for_allocate_board (void *idThread)
 {
   int id = (int)idThread;
-  int i;
-  for (i=threads[id].start; i<threads[id].end; i++) {
-    board[i] = (cell_t *) malloc(sizeof(cell_t)*size);
+  int j;
+  for (j=threads[id].start; j<threads[id].end; j++) {
+    board[j] = (cell_t *) malloc(sizeof(cell_t)*size);
   }
   pthread_exit(NULL);
 }
@@ -139,13 +139,13 @@ int adjacent_to (int i, int j)
 void *play_adjacent_to(void *idThread)
 {
   int id = (int)idThread;
-  int j, a;
-  for (j = threads[id].start; j < threads[id].end; j++) {
-    a = adjacent_to (playi, j); // como passar os parametros i e j?
-    if (a == 2) next[playi][j] = prev[playi][j];
-    if (a == 3) next[playi][j] = 1;
-    if (a < 2) next[playi][j] = 0;
-    if (a > 3) next[playi][j] = 0;
+  int k, a;
+  for (k = threads[id].start; k < threads[id].end; k++) {
+    a = adjacent_to (playi, k); // como passar os parametros i e j?
+    if (a == 2) next[playi][k] = prev[playi][k];
+    if (a == 3) next[playi][k] = 1;
+    if (a < 2) next[playi][k] = 0;
+    if (a > 3) next[playi][k] = 0;
   }
   pthread_exit(NULL);
 }
@@ -180,9 +180,9 @@ void print (cell_t ** board)
 
 void *for_read_file(void *idThread) {
   int id = (int)idThread;
-  int i;
-  for (i = threads[id].start; i < threads[id].end; i++) {
-    prev[i][readj] = s[i] == 'x';
+  int j;
+  for (j = threads[id].start; j < threads[id].end; j++) {
+    prev[j][readj] = s[j] == 'x';
   }
   pthread_exit(NULL);
 }
