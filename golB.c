@@ -36,7 +36,9 @@ cell_t ** prev;
 // Newboard
 cell_t ** next;
 //size
-int size, playi;
+int size, playi, readj;
+
+char  *s;
 
 //Calcula quais iterações do laço cada thread executa
 void iteration_calc (int totalIterations)
@@ -80,7 +82,7 @@ void *for_allocate_board (void *idThread)
 cell_t ** allocate_board ()
 {
   board = (cell_t **) malloc(sizeof(cell_t*)*size);
-  int	i;
+  int i;
   //Chama a função que distribui os i's de cada thread
   iteration_calc(size);
   for (i = 0; i < nThreads; i++) {
@@ -92,20 +94,35 @@ cell_t ** allocate_board ()
   return board;
 }
 
-void free_board (cell_t ** board)
+void *for_free_board(void *idThread) {
+  int id = (int)idThread;
+  int j;
+  for (j=threads[id].start; j<threads[id].end; j++) {
+    free(prev[j]);
+    free(next[j]);
+  }
+  pthread_exit(NULL);
+}
+
+void free_board ()
 {
   int i;
-  for (i=0; i<size; i++)
-    free(board[i]);
-
-  free(board);
+  iteration_calc(size);
+  for (i = 0; i < nThreads; i++) {
+    pthread_create(&threads[i].thread, NULL, for_free_board, (void *)i);
+  }
+  for (i = 0; i < nThreads; i++) {
+    pthread_join(threads[i].thread,NULL);
+  }
+  free(prev);
+  free(next);
 }
 
 
 /* return the number of on cells adjacent to the i,j cell */
 int adjacent_to (int i, int j)
 {
-  int	k, l, count=0;
+  int k, l, count=0;
 
   int sk = (i>0) ? i-1 : i;
   int ek = (i+1 < size) ? i+1 : i;
@@ -131,6 +148,7 @@ void *play_adjacent_to(void *idThread)
     if (a < 2) next[playi][j] = 0;
     if (a > 3) next[playi][j] = 0;
   }
+  pthread_exit(NULL);
 }
 
 void play ()
@@ -151,7 +169,7 @@ void play ()
 /* print the life board */
 void print (cell_t ** board)
 {
-  int	i, j;
+  int i, j;
   /* for each row */
   for (j=0; j<size; j++) {
     /* print each column position... */
@@ -162,23 +180,35 @@ void print (cell_t ** board)
   }
 }
 
+void *for_read_file(void *idThread) {
+  int id = (int)idThread;
+  int i;
+  for (i = threads[id].start; i < threads[id].end; i++) {
+    prev[i][readj] = s[i] == 'x';
+  }
+  pthread_exit(NULL);
+}
+
 /* read a file into the life board */
-void read_file (FILE * f, cell_t ** board)
+void read_file (FILE * f)
 {
-  int	i, j;
-  char	*s = (char *) malloc(size+10);
+  int i;
+  s = (char *) malloc(size+10);
 
   /* read the first new line (it will be ignored) */
   fgets (s, size+10,f);
-
+  iteration_calc(size);
   /* read the life board */
-  for (j=0; j<size; j++) {
+  for (readj=0; readj<size; readj++) {
     /* get a string */
     fgets (s, size+10,f);
     /* copy the string to the life board */
-    for (i=0; i<size; i++)
-    board[i][j] = s[i] == 'x';
-
+      for (i = 0; i < nThreads; i++) {
+        pthread_create(&threads[i].thread, NULL, for_read_file, (void *)i);
+      }
+      for (i = 0; i < nThreads; i++) {
+        pthread_join(threads[i].thread,NULL);
+      }
   }
 }
 
@@ -200,7 +230,7 @@ int main (int argc, char **argv)
   }
 
   prev = allocate_board ();
-  read_file (f, prev);
+  read_file (f);
   fclose(f);
   
   next = allocate_board ();
@@ -230,6 +260,6 @@ int main (int argc, char **argv)
   print (prev);
 #endif
 
-  free_board(prev);
-  free_board(next);
+  free_board();
+  free(threads);
 }
