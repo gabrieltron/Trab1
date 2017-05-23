@@ -41,8 +41,9 @@ int size, playi, readj;
 char  *s;
 
 //Calcula quais iterações do laço cada thread executa
-void iteration_calc (int totalIterations)
+void iteration_calc ()
 {
+    int totalIterations = size;
     //Calcula quantas iterações cada thread deve executar
     int iterations = totalIterations / nThreads;
     // Calcula quantas iterações vão ficar de fora, considerando que
@@ -84,7 +85,6 @@ cell_t ** allocate_board ()
   board = (cell_t **) malloc(sizeof(cell_t*)*size);
   int i;
   //Chama a função que distribui os i's de cada thread
-  iteration_calc(size);
   for (i = 0; i < nThreads; i++) {
     pthread_create(&threads[i].thread, NULL, for_allocate_board, (void *)i);
   }
@@ -107,7 +107,6 @@ void *for_free_board(void *idThread) {
 void free_board ()
 {
   int i;
-  iteration_calc(size);
   for (i = 0; i < nThreads; i++) {
     pthread_create(&threads[i].thread, NULL, for_free_board, (void *)i);
   }
@@ -154,7 +153,6 @@ void *play_adjacent_to(void *idThread)
 void play ()
 {
   int j;
-  iteration_calc(size);
   /* for each cell, apply the rules of Life */
   for (playi =0; playi < size; playi++) { 
       for (j = 0; j < nThreads; j++) {
@@ -197,7 +195,6 @@ void read_file (FILE * f)
 
   /* read the first new line (it will be ignored) */
   fgets (s, size+10,f);
-  iteration_calc(size);
   /* read the life board */
   for (readj=0; readj<size; readj++) {
     /* get a string */
@@ -228,6 +225,8 @@ int main (int argc, char **argv)
   } else {
     threads = (Thread *) malloc(sizeof(Thread)*nThreads);
   }
+
+  iteration_calc();
 
   prev = allocate_board ();
   read_file (f);
